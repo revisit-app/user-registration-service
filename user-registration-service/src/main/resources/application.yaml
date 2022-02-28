@@ -1,0 +1,10 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: registration-service
+  r2dbc:
+    url: <url>
+    username: <username>
+    password: <password>
