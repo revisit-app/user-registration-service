@@ -5,6 +5,7 @@ import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
@@ -23,6 +24,8 @@ public class UserHandler {
 
   private final UserRepo ur;
   private final PasswordEncoder pe;
+  private final WebClient.Builder wcb;
+  private final String userProfileServiceUrl = "localhost:8085";
 
   private Mono<Boolean> doesUsernameExist(String username) {
     return ur.findByUsername(username)
@@ -66,6 +69,19 @@ public class UserHandler {
                   return ur.save(user)
                       .flatMap(su -> {
                         log.info("User: {} created", su.getUsername());
+                        
+                        //Create user profile
+                        wcb.build()
+                            .post()
+                            .uri(userProfileServiceUrl)
+                            .header("userId", String.valueOf(su.getId()))
+                            .retrieve()
+                            .toBodilessEntity()
+                            .subscribe(res -> {
+                              if (res.getStatusCode() == HttpStatus.CREATED) {
+                                log.info("User profile created for user: {}", su.getId());
+                              }
+                            });
 
                         return ServerResponse.created(URI.create(request.uri() + su.getUsername())).build();
                       });
